@@ -115,25 +115,32 @@ function DeviceLayout() {
         (a, b) => b.localeCompare(a),
       )
     : loaderDays;
-  // Read the live mic slice off a ref so the effect can depend ONLY on the
-  // stable route conditions. `microphone.start`'s identity churns whenever the
-  // Surreal write-sink / read-source changes (it closes over the ingest chain);
-  // listing it in the deps would re-run this effect on unrelated toggles. The
-  // fire-once permissionTriedRef guard means the stale closure is fine — and
-  // startMic itself no-ops if capture is already running.
+  // Read the volatile parts of the mic slice off a ref so the effect doesn't
+  // depend on them. `microphone.start`'s identity churns whenever the Surreal
+  // write-sink / read-source changes (it closes over the ingest chain), and
+  // `active`/`starting` toggle during a start; listing any of them would re-run
+  // this effect on unrelated changes. The fire-once permissionTriedRef guard
+  // makes the stale closure safe, and startMic itself no-ops if already running.
   const micRef = useRef(microphone);
   micRef.current = microphone;
+  // `supported` is the exception: it starts false and flips to true AFTER mount
+  // (the layout probes isMicrophoneSupported() in its own effect). So it MUST be
+  // a dependency — otherwise, on a direct load of the mic device, this effect
+  // runs once while supported is still false, bails at the guard, and never
+  // re-runs when support becomes known, so capture never auto-starts. It's
+  // monotonic (false→true then stable), so it triggers exactly one extra run.
+  const micSupported = microphone.supported;
   useEffect(() => {
-    if (!isMicDevice || !onLiveView) return;
+    if (!isMicDevice || !onLiveView || !micSupported) return;
     if (permissionTriedRef.current) return;
     const mic = micRef.current;
-    if (!mic.supported || mic.active || mic.starting) return;
+    if (mic.active || mic.starting) return;
     permissionTriedRef.current = true;
     void mic.start().catch(() => {
       // start() already toasts on real failures; swallow user-cancel/denial so
       // we don't rethrow into the effect.
     });
-  }, [isMicDevice, onLiveView]);
+  }, [isMicDevice, onLiveView, micSupported]);
 
   // Day-aware: the historical view shows where the device stood on that day.
   const location = resolveLocation(locations, date ?? null);
