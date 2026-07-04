@@ -16,6 +16,8 @@ import {
 import {deviceLocations, noiseDays} from '../server/noiseHistory.server';
 import {LAUTSTAERKE_DEMO} from '../components/lautstaerke/demoMode';
 import {MIC_DEVICE_NAME} from '../components/lautstaerke/microphone/source';
+import {days as surrealDaysQuery} from '../components/lautstaerke/surreal/store';
+import type {Surreal} from '@frachter-app/surrealdb';
 import {seo} from '../utils/seo';
 
 const loadDevice = createServerFn()
@@ -48,7 +50,7 @@ function DeviceLayout() {
   // The historical child adds a `date` param; its presence is how we tell the
   // two views apart (and what the day picker should show as selected).
   const {date} = useParams({strict: false});
-  const {days, locations} = Route.useLoaderData();
+  const {days: loaderDays, locations} = Route.useLoaderData();
   const [weighting, setWeighting] = useState<Weighting>('A');
   const toggleWeighting = () => setWeighting((w) => (w === 'A' ? 'C' : 'A'));
 
@@ -58,10 +60,61 @@ function DeviceLayout() {
   // auto-start capture when this is the mic device on the live view and it isn't
   // already running. Runs once per mount attempt (permissionTriedRef) so a
   // denied getUserMedia doesn't re-prompt in a loop.
-  const {microphone} = useLautstaerkeCtx();
+  const {microphone, storage} = useLautstaerkeCtx();
   const permissionTriedRef = useRef(false);
   const isMicDevice = device === MIC_DEVICE_NAME;
   const onLiveView = date == null;
+
+  // Day picker source. The loader fills `days` from Neon (noiseDays), which is
+  // empty when reading from the local SurrealDB volume (and in demo mode). So
+  // when Surreal is the read source, query the distinct local days that have data
+  // in the opfs volume for this device and use those instead — this is what makes
+  // captured history reachable (e.g. from the local microphone) without Neon.
+  const [surrealDays, setSurrealDays] = useState<string[] | null>(null);
+  const useSurrealDays =
+    storage.readSource === 'surreal' && storage.status === 'ready';
+  useEffect(() => {
+    if (!useSurrealDays || !storage.db) {
+      setSurrealDays(null);
+      return;
+    }
+    let cancelled = false;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const db = storage.db as Surreal;
+    const refresh = () => {
+      void surrealDaysQuery(db, device, tz)
+        .then((d) => {
+          if (!cancelled) setSurrealDays(d);
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) {
+            console.error('[lautstärke] surreal days failed', e);
+          }
+        });
+    };
+    refresh();
+    // Re-query on a modest interval so a day that gains its first data mid-session
+    // (e.g. the local mic recording right now, or midnight rolling over) appears
+    // in the picker without a reload. The query is a light id-range scan.
+    const id = setInterval(refresh, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+    // Re-run the whole effect when the volume connects/changes or the device
+    // changes; `date` is intentionally excluded so navigating live↔history
+    // doesn't reset the interval.
+  }, [useSurrealDays, storage.db, device]);
+
+  // Surreal days take precedence when reading from Surreal; otherwise the
+  // Neon-loaded list. If the currently-viewed `date` isn't in the list yet (e.g.
+  // a direct URL to a day the query hasn't returned), include it so the picker
+  // still shows the selected day.
+  const days = useSurrealDays
+    ? [...new Set([...(date ? [date] : []), ...(surrealDays ?? [])])].sort(
+        (a, b) => b.localeCompare(a),
+      )
+    : loaderDays;
   // Read the live mic slice off a ref so the effect can depend ONLY on the
   // stable route conditions. `microphone.start`'s identity churns whenever the
   // Surreal write-sink / read-source changes (it closes over the ingest chain);
