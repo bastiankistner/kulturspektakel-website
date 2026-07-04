@@ -1,6 +1,7 @@
 import {Box} from '@chakra-ui/react';
 import {Surrealist} from '@frachter-app/surrealist';
 import {
+  DialogBackdrop,
   DialogBody,
   DialogCloseTrigger,
   DialogContent,
@@ -29,12 +30,39 @@ export function SurrealistModal({
       onOpenChange={(e) => !e.open && onClose()}
       size="cover"
       placement="center"
+      // The IDE lives in an <iframe>; clicking anything inside it (e.g. the
+      // Explorer/Query switch) moves focus into that separate document, which
+      // Chakra's dialog would otherwise treat as an "interact outside" and close
+      // the modal. Disable outside-click dismissal — the modal is still closable
+      // via Escape and the explicit close button.
+      closeOnInteractOutside={false}
     >
-      <DialogContent bg="gray.900" color="gray.100">
+      {/* Dim + blur the page behind the modal so the IDE reads as a focused
+          overlay, not a bare panel. `backdrop={false}` on DialogContent below
+          suppresses the snippet's default (unstyled) backdrop so we don't stack
+          two. */}
+      <DialogBackdrop bg="blackAlpha.700" backdropFilter="blur(6px)" />
+      <DialogContent
+        backdrop={false}
+        bg="gray.900"
+        color="gray.100"
+        // A visible edge + soft drop shadow to lift the modal off the blurred
+        // backdrop.
+        borderWidth="1px"
+        borderColor="whiteAlpha.300"
+        rounded="lg"
+        boxShadow="0 24px 64px rgba(0, 0, 0, 0.6)"
+        overflow="hidden"
+      >
         <DialogHeader>
           <DialogTitle>Surrealist – {VOLUME}</DialogTitle>
         </DialogHeader>
-        <DialogCloseTrigger />
+        {/* Force a light icon + subtle hover fill so the close button is legible
+            on the dark header (the default ghost button renders a dark glyph). */}
+        <DialogCloseTrigger
+          color="whiteAlpha.800"
+          _hover={{bg: 'whiteAlpha.200', color: 'white'}}
+        />
         <DialogBody p="0" display="flex" flexDirection="column" minH="0">
           <Box flex="1" minH="0">
             {/* Only mount the iframe while open so it doesn't grab the volume in

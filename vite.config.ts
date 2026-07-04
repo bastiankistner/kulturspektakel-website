@@ -36,13 +36,22 @@ function crossOriginIsolationDev(): Plugin {
         //    which is what made db.connect("opfs://…") hang to its timeout. The
         //    worker entry is served from /src/…, so scope COEP to same-origin
         //    module/script requests (not the /crew/lautstaerke *page* only).
+        //  - COEP on the SURREALIST EMBED HTML: the Surrealist IDE renders in an
+        //    <iframe src="/surrealist-embed/mini/run/index.html">. An iframe
+        //    embedded in a COEP: require-corp page must ITSELF be served with a
+        //    compatible COEP, even same-origin — otherwise Chrome blocks the
+        //    frame load (ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaulted…),
+        //    which the browser renders as "localhost refused to connect". So the
+        //    embed's document (and its own module graph, already covered above)
+        //    must carry COEP too.
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         const url = req.url ?? '';
         const isModuleRequest =
           url.startsWith('/src/') ||
           url.startsWith('/node_modules/') ||
           url.startsWith('/@');
-        if (url.startsWith(COI_PATH) || isModuleRequest) {
+        const isEmbedRequest = url.startsWith('/surrealist-embed/');
+        if (url.startsWith(COI_PATH) || isModuleRequest || isEmbedRequest) {
           for (const [k, v] of Object.entries(COI_HEADERS)) res.setHeader(k, v);
         }
         next();
@@ -86,11 +95,20 @@ export default defineConfig({
       //    — same-origin does NOT exempt them. Without this, prod hits the same
       //    worker-boot hang as dev (opfs:// connect times out). See
       //    https://github.com/frachter-app/opfs-vfs/issues/165.
+      //  - COOP/COEP are applied to /surrealist-embed/** as well (not just CORP):
+      //    the Surrealist IDE is framed from the COEP: require-corp noise page, so
+      //    the embed's HTML document must itself be served with a compatible COEP
+      //    or Chrome refuses to load the iframe ("refused to connect"). It also
+      //    needs COEP to be cross-origin isolated in its own right, since it runs
+      //    the SurrealDB wasm engine + worker.
       routeRules: {
         [`${COI_PATH}/**`]: {headers: {...COI_HEADERS}},
         '/assets/**': {headers: {'Cross-Origin-Resource-Policy': 'cross-origin'}},
         '/surrealist-embed/**': {
-          headers: {'Cross-Origin-Resource-Policy': 'cross-origin'},
+          headers: {
+            ...COI_HEADERS,
+            'Cross-Origin-Resource-Policy': 'cross-origin',
+          },
         },
       },
     }),

@@ -17,7 +17,8 @@ import {
 } from '../components/lautstaerke/context';
 import {BatteryChip} from '../components/lautstaerke/BatteryChip';
 import {BluetoothMenu} from '../components/lautstaerke/BluetoothMenu';
-import {MicrophoneButton} from '../components/lautstaerke/MicrophoneButton';
+import {MicrophoneRow} from '../components/lautstaerke/MicrophoneRow';
+import {MIC_DEVICE_NAME} from '../components/lautstaerke/microphone/source';
 
 export const Route = createFileRoute('/crew/lautstaerke/')({
   component: DeviceList,
@@ -33,7 +34,12 @@ function DeviceList() {
   const bleName = ctx.bluetooth.deviceName;
   const names = [
     ...new Set([...ctx.deviceIds, ...Object.keys(ctx.devices)]),
-  ].sort((a, b) => {
+  ]
+    // The local microphone is rendered as a dedicated, always-present row
+    // (MicrophoneRow) with its own record/stop control — keep it out of the
+    // generic device loop so it isn't listed twice.
+    .filter((name) => name !== MIC_DEVICE_NAME)
+    .sort((a, b) => {
     const aBle = a === bleName;
     const bBle = b === bleName;
     if (aBle !== bBle) return aBle ? -1 : 1;
@@ -59,19 +65,24 @@ function DeviceList() {
           Lautstärke
         </Heading>
         <HStack gap="2">
-          <MicrophoneButton />
           <BluetoothMenu />
         </HStack>
       </HStack>
-      {names.length === 0 && !ctx.connected ? (
-        <Center flex="1" py="10">
-          <Spinner size="lg" />
-        </Center>
-      ) : names.length === 0 ? (
-        <Text color="gray.500">Keine Lärmmessgeräte registriert.</Text>
-      ) : (
-        <VStack align="stretch" gap="2">
-          {names.map((name) => {
+      {/* The microphone row is always present (see MicrophoneRow), so the list is
+          never truly empty — show a spinner only while we're still connecting to
+          MQTT and no hardware device has appeared yet, above the mic row. */}
+      <VStack align="stretch" gap="2">
+        <MicrophoneRow now={now} />
+        {names.length === 0 && !ctx.connected ? (
+          <Center py="6">
+            <Spinner size="md" />
+          </Center>
+        ) : names.length === 0 ? (
+          <Text color="gray.500" fontSize="sm">
+            Keine weiteren Lärmmessgeräte registriert.
+          </Text>
+        ) : (
+          names.map((name) => {
             const state = ctx.devices[name];
             const active = isFresh(state?.lastSeen, now);
             const ble = name === bleName;
@@ -146,9 +157,9 @@ function DeviceList() {
                 </Link>
               </Box>
             );
-          })}
-        </VStack>
-      )}
+          })
+        )}
+      </VStack>
     </Box>
   );
 }

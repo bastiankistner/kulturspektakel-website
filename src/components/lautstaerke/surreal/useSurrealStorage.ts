@@ -2,7 +2,12 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import type {Surreal} from '@frachter-app/surrealdb';
 import {connect, type Connection} from './db';
 import {ingest as ingestReading} from './store';
-import {persistReadSource, readPersistedSource} from './readSource';
+import {
+  persistReadSource,
+  persistWriteSink,
+  readPersistedSource,
+  readPersistedWriteSink,
+} from './readSource';
 import type {NoiseRecording} from '../../../proto/noise';
 import type {
   StorageBackend,
@@ -23,13 +28,35 @@ export function useSurrealStorage(): {
   slice: StorageSlice;
   ingest: (device: string, decoded: NoiseRecording, receiveTime: number) => void;
 } {
-  const [readSource, setReadSourceState] =
-    useState<StorageBackend>(readPersistedSource);
+  // Both preferences persist to localStorage. Initialise to the SSR-safe
+  // defaults ('neon' / false) — NOT the persisted values — so the first client
+  // render matches the server-rendered HTML (localStorage doesn't exist during
+  // SSR). The stored values are then adopted in a mount effect below. Reading
+  // localStorage in the useState initialiser instead would render the persisted
+  // choice on the client while the server rendered the default → hydration
+  // mismatch (React discards and re-renders the subtree).
+  const [readSource, setReadSourceState] = useState<StorageBackend>('neon');
   const setReadSource = useCallback((b: StorageBackend) => {
     setReadSourceState(b);
     persistReadSource(b);
   }, []);
-  const [surrealWrite, setSurrealWrite] = useState(false);
+  const [surrealWrite, setSurrealWriteState] = useState(false);
+  const setSurrealWrite = useCallback((on: boolean) => {
+    setSurrealWriteState(on);
+    persistWriteSink(on);
+  }, []);
+
+  // Adopt the persisted preferences after hydration. Runs once on mount, after
+  // the SSR-matched first paint, so it can't cause a hydration mismatch. Uses the
+  // functional/plain setters (not the persisting ones) so restoring a value
+  // doesn't re-write the same value back to localStorage.
+  useEffect(() => {
+    const storedSource = readPersistedSource();
+    if (storedSource !== 'neon') setReadSourceState(storedSource);
+    if (readPersistedWriteSink()) setSurrealWriteState(true);
+    // Mount-only: intentionally no deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [status, setStatus] = useState<SurrealStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [db, setDb] = useState<Surreal | null>(null);

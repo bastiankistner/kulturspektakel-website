@@ -208,7 +208,9 @@ export async function days(
 ): Promise<string[]> {
   // Whole-device range scan; bucket each ts to a local-day string client-side
   // (SurrealDB has no tz-aware date_trunc), dedupe, newest first, cap at 10.
-  const [rows] = await db.query<[Array<{ts: number}>]>(
+  // `SELECT VALUE ts` projects the bare field, so the result is an array of
+  // NUMBERS (epoch ms), not {ts} objects — consume it as such.
+  const [timestamps] = await db.query<[number[]]>(
     `SELECT VALUE ts FROM ${rangeFrom(device)} ORDER BY ts DESC`,
   );
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -219,7 +221,8 @@ export async function days(
   });
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const {ts} of rows ?? []) {
+  for (const ts of timestamps ?? []) {
+    if (typeof ts !== 'number' || !Number.isFinite(ts)) continue;
     const day = fmt.format(new Date(ts)); // en-CA → yyyy-mm-dd
     if (!seen.has(day)) {
       seen.add(day);
