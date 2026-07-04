@@ -7,6 +7,10 @@ node_modules
 .DS_Store
 yarn-error.log
 
+# Surrealist embed static assets (~66MB) — staged from node_modules by
+# scripts/copy-surrealist-embed.js on install/dev/build, never committed.
+/public/surrealist-embed
+
 # Sentry Config File
 .sentryclirc
 

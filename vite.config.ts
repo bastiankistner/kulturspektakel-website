@@ -80,14 +80,6 @@ export default defineConfig({
     // provider-first ordering; esnext keeps top-level await in both the app and
     // worker chunks.
     target: 'esnext',
-    rollupOptions: {
-      // The Surrealist embed is an OPTIONAL, dynamically-imported dependency
-      // (a pre-release in a separate fork repo that may not be installed). Mark
-      // it external so the build doesn't fail resolving it when absent; the
-      // SurrealistModal loads it at runtime and falls back gracefully if the
-      // module isn't there.
-      external: ['@frachter-app/surrealist'],
-    },
   },
   worker: {
     format: 'es',
