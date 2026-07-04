@@ -11,7 +11,10 @@ export const MIC_DEVICE_NAME = 'mikrofon-lokal';
 // Default display offset that lifts uncalibrated dBFS onto the 20–110 device
 // scale so a normal room lands mid-chart. Relative, not SPL — see dsp.ts.
 const DEFAULT_OFFSET_DB = 130;
-const FFT_SIZE = 4096; // ~11.7 Hz bins at 48 kHz — enough for the low bands.
+// 16384 → ~2.9 Hz bins at 48 kHz. Needed so the lowest 1/3-octave bands (16, 20,
+// 40 Hz, whose widths are only a few Hz) contain at least one FFT bin; at 4096
+// (~11.7 Hz bins) those three bands were empty and always read the floor.
+const FFT_SIZE = 16384;
 
 export interface MicHandle {
   stop(): Promise<void>;
@@ -62,8 +65,11 @@ export async function startMicrophone(
   const freqScratch = new Float32Array(binCount);
   const timeScratch = new Float32Array(analyser.fftSize);
 
-  // Per-second accumulators.
-  let sumMag = new Float64Array(binCount);
+  // Per-second accumulators. We sum POWER (magnitude²), not magnitude, so the
+  // per-second mean is energy-correct: averaging amplitude then squaring
+  // under-reports any level that fluctuates within the window (Jensen's
+  // inequality), which is exactly what music/speech do.
+  let sumPow = new Float64Array(binCount);
   let frames = 0;
   let peakSample = 0;
 
@@ -71,11 +77,11 @@ export async function startMicrophone(
   const sampleMs = 20;
   const sampleTimer = setInterval(() => {
     // getFloatFrequencyData gives dB (dBFS) per bin; convert to linear magnitude
-    // for power averaging (10^(dBFS/20)).
+    // (10^(dBFS/20)) then square to power and accumulate.
     analyser.getFloatFrequencyData(freqScratch);
     for (let i = 0; i < binCount; i++) {
       const mag = Math.pow(10, freqScratch[i] / 20);
-      sumMag[i] += mag;
+      sumPow[i] += mag * mag;
     }
     analyser.getFloatTimeDomainData(timeScratch);
     for (let i = 0; i < timeScratch.length; i++) {
@@ -88,10 +94,11 @@ export async function startMicrophone(
   // Emit one frame per second from the accumulated stats, then reset.
   const emitTimer = setInterval(() => {
     if (frames === 0) return;
-    const avg = new Float32Array(binCount);
-    for (let i = 0; i < binCount; i++) avg[i] = sumMag[i] / frames;
+    // Mean power per bin over the window (spectrumToBands expects power).
+    const avgPower = new Float32Array(binCount);
+    for (let i = 0; i < binCount; i++) avgPower[i] = sumPow[i] / frames;
 
-    const f = buildMicFrame(avg, binHz, offsetDb, peakSample);
+    const f = buildMicFrame(avgPower, binHz, offsetDb, peakSample);
     const record: NoiseRecording = {
       records: [
         {
@@ -114,7 +121,7 @@ export async function startMicrophone(
     };
     onFrame(record, Date.now());
 
-    sumMag = new Float64Array(binCount);
+    sumPow = new Float64Array(binCount);
     frames = 0;
     peakSample = 0;
   }, 1000);
