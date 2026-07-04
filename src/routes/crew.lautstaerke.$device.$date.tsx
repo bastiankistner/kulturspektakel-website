@@ -1,10 +1,13 @@
 import {createFileRoute, notFound} from '@tanstack/react-router';
 import {createServerFn} from '@tanstack/react-start';
 import {crewAuth} from '../server/crewAuth';
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Box} from '@chakra-ui/react';
 import type uPlot from 'uplot';
-import {HISTORY_SERIES} from '../components/lautstaerke/context';
+import {
+  HISTORY_SERIES,
+  useLautstaerkeCtx,
+} from '../components/lautstaerke/context';
 import {
   BigNumberRow,
   useSeriesToggle,
@@ -12,11 +15,13 @@ import {
 import {NoiseTimeChart} from '../components/lautstaerke/NoiseTimeChart';
 import {deviceTitle, useDeviceView} from '../components/lautstaerke/deviceView';
 import {fmtHourMinute} from '../components/lautstaerke/chartUtils';
+import {noiseHistory} from '../server/noiseHistory.server';
 import {
   localDayRange,
-  noiseHistory,
   rowsToAligned,
-} from '../server/noiseHistory.server';
+} from '../components/lautstaerke/noiseHistory.shared';
+import {history as surrealHistory} from '../components/lautstaerke/surreal/store';
+import type {Surreal} from '@frachter-app/surrealdb';
 import {seo} from '../utils/seo';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,12 +51,59 @@ export const Route = createFileRoute('/crew/lautstaerke/$device/$date')({
 });
 
 function DeviceHistory() {
-  const {aligned, start, end} = Route.useLoaderData();
+  const {device, date} = Route.useParams();
+  const neon = Route.useLoaderData();
   const {weighting} = useDeviceView();
+  const {storage} = useLautstaerkeCtx();
   const [cursorIdx, setCursorIdx] = useState<number | 'gap' | null>(null);
   const {shown, toggle} = useSeriesToggle(HISTORY_SERIES);
 
-  // Stable per loaded day, so NoiseTimeChart re-pushes only when the day changes.
+  // When reading from the local SurrealDB volume, replace the Neon-loaded data
+  // with a client-side range-scan of the opfs:// volume (SurrealDB is
+  // browser-only, so it can't run in the server-fn loader). Falls back to the
+  // Neon data until the local query resolves.
+  const useSurreal = storage.readSource === 'surreal';
+  const [surreal, setSurreal] = useState<{
+    aligned: number[][];
+    start: number;
+    end: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!useSurreal || storage.status !== 'ready' || !storage.db) {
+      setSurreal(null);
+      return;
+    }
+    let cancelled = false;
+    const {start, end} = localDayRange(date);
+    void surrealHistory(
+      storage.db as Surreal,
+      device,
+      start.getTime(),
+      end.getTime(),
+    )
+      .then((rows) => {
+        if (cancelled) return;
+        setSurreal({
+          aligned: rowsToAligned(rows),
+          start: start.getTime(),
+          end: end.getTime(),
+        });
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        console.error('[lautstärke] surreal history failed', e);
+        setSurreal(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [useSurreal, storage.status, storage.db, device, date]);
+
+  const {aligned, start, end} = useSurreal && surreal ? surreal : neon;
+
+  // Stable per loaded day + source, so NoiseTimeChart re-pushes only when the
+  // underlying data changes.
   const data = useMemo(
     () => aligned as unknown as uPlot.AlignedData,
     [aligned],

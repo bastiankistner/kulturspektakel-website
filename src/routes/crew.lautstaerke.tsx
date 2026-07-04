@@ -28,6 +28,8 @@ import {createServerFn} from '@tanstack/react-start';
 import {crewAuth} from '../server/crewAuth';
 import {prismaClient} from '../server/prismaClient.server';
 import {Toaster, toaster} from '../components/chakra-snippets/toaster';
+import {useSurrealStorage} from '../components/lautstaerke/surreal/useSurrealStorage';
+import {StorageMenu} from '../components/lautstaerke/StorageMenu';
 
 const noiseDevices = createServerFn()
   .middleware([crewAuth])
@@ -74,6 +76,10 @@ function LautstaerkeLayout() {
   const [devices, setDevices] = useState<Record<string, DeviceState>>({});
   const deviceDataRef = useRef<Record<string, DeviceBuffer>>({});
 
+  // Local SurrealDB-on-OPFS storage option (floating StorageMenu below). Its
+  // `ingest` mirrors the live stream into the opfs:// volume when enabled.
+  const surreal = useSurrealStorage();
+
   const [bleDeviceName, setBleDeviceName] = useState<string | null>(null);
   const [bleConnecting, setBleConnecting] = useState(false);
   const [bleSupported, setBleSupported] = useState(false);
@@ -99,6 +105,10 @@ function LautstaerkeLayout() {
       const record = decoded.records[0];
       if (!record) return;
 
+      // Mirror the live frame into the local SurrealDB volume when that storage
+      // option is enabled (no-op otherwise). Never blocks the live view.
+      surreal.ingest(deviceName, decoded, receiveTime);
+
       let data = deviceDataRef.current[deviceName];
       if (!data) {
         data = [[], ...SERIES.map(() => [] as number[])];
@@ -120,7 +130,7 @@ function LautstaerkeLayout() {
         },
       }));
     },
-    [],
+    [surreal.ingest],
   );
 
   useEffect(() => {
@@ -303,6 +313,7 @@ function LautstaerkeLayout() {
         writeCalibration: writeCal,
         writeWifi: writeWifiCreds,
       },
+      storage: surreal.slice,
     }),
     [
       connected,
@@ -318,6 +329,7 @@ function LautstaerkeLayout() {
       readCal,
       writeCal,
       writeWifiCreds,
+      surreal.slice,
     ],
   );
 
@@ -335,6 +347,7 @@ function LautstaerkeLayout() {
         >
           <Outlet />
         </Box>
+        <StorageMenu />
         <Toaster />
       </DarkMode>
     </LautstaerkeContext.Provider>
