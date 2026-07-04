@@ -173,11 +173,40 @@ export type BluetoothSlice = {
   writeWifi: (ssid: string, password: string) => Promise<void>;
 };
 
+// Which database backs the noise views.
+//  - 'neon':    the cloud Postgres (default) — history via server functions.
+//  - 'surreal': a local SurrealDB volume on OPFS-VFS (opfs://), in-browser.
+export type StorageBackend = 'neon' | 'surreal';
+
+// Connection state of the local SurrealDB volume.
+export type SurrealStatus = 'idle' | 'connecting' | 'ready' | 'error';
+
+export type StorageSlice = {
+  // The source the charts/history READ from.
+  readSource: StorageBackend;
+  setReadSource: (b: StorageBackend) => void;
+  // Whether the browser MIRRORS the live MQTT/BLE stream INTO the local
+  // SurrealDB volume. Additive: the server→Neon ingest is untouched (it happens
+  // device-side, out of the browser's reach). Implicitly true while reading from
+  // Surreal (there must be data to read).
+  surrealWrite: boolean;
+  setSurrealWrite: (on: boolean) => void;
+  // Lifecycle of the opfs:// connection. The volume is opened lazily the first
+  // time Surreal is needed (write enabled or read source switched to surreal).
+  status: SurrealStatus;
+  error: string | null;
+  // The connected Surreal instance, or null until `status === 'ready'`. Typed as
+  // unknown here to keep the shared context free of the SDK import; the surreal
+  // store/routes cast it to `Surreal`.
+  db: unknown | null;
+};
+
 export type LautstaerkeCtx = {
   connected: boolean;
   devices: Record<string, DeviceState>;
   deviceData: MutableRefObject<Record<string, DeviceBuffer>>;
   bluetooth: BluetoothSlice;
+  storage: StorageSlice;
   // All NOISE_MONITOR device ids from the database (sorted). This is the set of
   // rows rendered in the list; MQTT only drives each row's activity indicator.
   deviceIds: string[];

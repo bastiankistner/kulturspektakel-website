@@ -11,6 +11,7 @@ import {
   resolveLocation,
 } from '../components/lautstaerke/deviceView';
 import {deviceLocations, noiseDays} from '../server/noiseHistory.server';
+import {LAUTSTAERKE_DEMO} from '../components/lautstaerke/demoMode';
 import {seo} from '../utils/seo';
 
 const loadDevice = createServerFn()
@@ -26,7 +27,12 @@ const loadDevice = createServerFn()
 
 export const Route = createFileRoute('/crew/lautstaerke/$device')({
   component: DeviceLayout,
-  loader: ({params}) => loadDevice({data: params.device}),
+  // Demo mode skips the crew-authed Neon lookups (day picker + location history);
+  // the live view doesn't need them. Dead code in production (see demoMode.ts).
+  loader: ({params}) =>
+    LAUTSTAERKE_DEMO
+      ? {days: [] as string[], locations: []}
+      : loadDevice({data: params.device}),
   head: ({matches, params}) =>
     seo({title: `Lautstärke – ${deviceTitle(matches, params.device, null)}`}),
 });

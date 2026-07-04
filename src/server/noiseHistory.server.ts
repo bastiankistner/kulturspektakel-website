@@ -1,25 +1,15 @@
-import {subMinutes} from 'date-fns';
-import {tzOffset} from '@date-fns/tz';
 import {prismaClient} from './prismaClient.server';
 import {
-  HISTORY_SERIES,
   type DeviceLocationRecord,
   type HistoryRow,
 } from '../components/lautstaerke/context';
 import {timeZone} from '../utils/dateUtils';
+// localDayRange + rowsToAligned are pure (no Prisma) and shared with the
+// client-side SurrealDB history path, so they live in a client-safe module and
+// are re-exported here to keep this module's public API stable.
+import {localDayRange, rowsToAligned} from '../components/lautstaerke/noiseHistory.shared';
 
-// NoiseLog.measuredAt is stored as a UTC instant. A local day runs from local
-// 00:00 to the next local 00:00; convert each boundary with that date's timeZone
-// offset so the range stays correct across DST transitions.
-export function localDayRange(date: string): {start: Date; end: Date} {
-  const [y, m, d] = date.split('-').map(Number);
-  const startUtc = new Date(Date.UTC(y, m - 1, d));
-  const endUtc = new Date(Date.UTC(y, m - 1, d + 1));
-  return {
-    start: subMinutes(startUtc, tzOffset(timeZone, startUtc)),
-    end: subMinutes(endUtc, tzOffset(timeZone, endUtc)),
-  };
-}
+export {localDayRange, rowsToAligned};
 
 // Aggregate NoiseLog (one row per second) into per-minute buckets for one
 // device and one local day, entirely in SQL. Stored ints are encoded as
@@ -112,13 +102,3 @@ export async function deviceLocations(
   return rows.map((r) => ({name: r.locationName, createdAt: r.createdAt.getTime()}));
 }
 
-// Project the aggregate rows into the [x, ...columns] layout uPlot wants, with
-// one column per HISTORY_SERIES entry in order. The SQL only emits minutes that
-// had data, so gaps are rendered by NoiseTimeChart's gap refiner (a > threshold
-// jump between consecutive x values), no explicit null rows needed. Returned as
-// plain number[][]; the view casts it to uPlot.AlignedData at the chart edge.
-export function rowsToAligned(rows: HistoryRow[]): number[][] {
-  const xs = rows.map((r) => r.minute_epoch);
-  const cols = HISTORY_SERIES.map((s) => rows.map((r) => r[s.col]));
-  return [xs, ...cols];
-}

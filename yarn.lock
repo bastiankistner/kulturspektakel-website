@@ -1183,6 +1183,11 @@
   dependencies:
     "@edge-runtime/primitives" "4.1.0"
 
+"@electric-sql/pglite-prepopulatedfs@^0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@electric-sql/pglite-prepopulatedfs/-/pglite-prepopulatedfs-0.0.3.tgz#a13f342fb37f7883bd4489052a998e6b8200108d"
+  integrity sha512-3MNFt+gR0P22foWi55j/HZ6DvQ82DEVIvmoKVYCdoG/gezMikGR794tO07/15CV4RcR3PnfCPoQjApPfXfD01w==
+
 "@electric-sql/pglite-socket@0.1.1":
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/@electric-sql/pglite-socket/-/pglite-socket-0.1.1.tgz#af443da3a60130aee254faee4daf50fb79fb8d1f"
@@ -1985,6 +1990,48 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.11.tgz#a269e055e40e2f45873bae9d1a2fdccbd314ea3f"
   integrity sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==
 
+"@frachter-app/opfs-vfs@0.7.0", "@frachter-app/opfs-vfs@^0.7.0":
+  version "0.7.0"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/opfs-vfs/0.7.0/7ecf4d6c91af7c0d4177ce65706b861ad9f564ff#7ecf4d6c91af7c0d4177ce65706b861ad9f564ff"
+  integrity sha512-/xeAeitcX8VJ7wxKX+PuVgNf56yYwP4ASqU/VE4RPeTYdclltEcoTuR24WvfnPdQRPNzLuUcrUu8Gw/ySIrbcw==
+  dependencies:
+    "@electric-sql/pglite-prepopulatedfs" "^0.0.3"
+    "@noble/ciphers" "^2.2.0"
+    "@noble/hashes" "^2.2.0"
+    hash-wasm "^4.12.0"
+    libsodium-wrappers "^0.8.4"
+    sucrase "^3.35.1"
+
+"@frachter-app/surreal-engine-coordinator@^0.1.0":
+  version "0.1.0"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/surreal-engine-coordinator/0.1.0/215164fd3a791c8de3ec04ab0a693e4c926add6d#215164fd3a791c8de3ec04ab0a693e4c926add6d"
+  integrity sha512-cdKDwXo4unK24hTYwSAMtkgf6kKX0ab4ebrqcck+rFFV96KYnx4lssBBipPp5stNcYxjX/wiy3fdegwyKb00Lg==
+
+"@frachter-app/surreal-opfs-kv@^0.1.0":
+  version "0.1.0"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/surreal-opfs-kv/0.1.0/8bba3ee7f1b49c37153ece54ef34070db2ab187b#8bba3ee7f1b49c37153ece54ef34070db2ab187b"
+  integrity sha512-c4I+D8o5/X4XCjozSjYWGiqRpIsFXWXUShHpMcF6RFonxf789QyKAT/Mcq1QdORUOh2h2QCRc0N4zmujyeCUFA==
+  dependencies:
+    "@frachter-app/opfs-vfs" "0.7.0"
+    sorted-btree "^2.1.0"
+
+"@frachter-app/surrealdb-wasm@3.0.4-fr.7.g2164796.cf8e4304":
+  version "3.0.4-fr.7.g2164796.cf8e4304"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/surrealdb-wasm/3.0.4-fr.7.g2164796.cf8e4304/30b66e46bb6bad9356bba4e0cc2edcbd7edb43d5#30b66e46bb6bad9356bba4e0cc2edcbd7edb43d5"
+  integrity sha512-yhE7xhzcEdN0C4Wk9wha9cMwy2pf3osOKt/MuOfjaw1OJlqcBkaTn+jh4EGEMwJt1HT+qzRYqWeUW/Frk3gCCQ==
+
+"@frachter-app/surrealdb@2.0.4-fr.7.g2164796.cf8e4304":
+  version "2.0.4-fr.7.g2164796.cf8e4304"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/surrealdb/2.0.4-fr.7.g2164796.cf8e4304/974a13b89856db12c54a616fc91893002b6f697b#974a13b89856db12c54a616fc91893002b6f697b"
+  integrity sha512-jFPBBffE/ThM2EPrRwJXlVoE5FfhE7JeoDroMCXE2yxXt67/vUPZbbhBfv7jy5aT6shaFKh/ddFrFpumnZIT6A==
+  dependencies:
+    "@surrealdb/sqon" "^0.1.1"
+
+"@frachter-app/surrealist@0.1.0-fr.12":
+  version "0.1.0-fr.12"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/surrealist/0.1.0-fr.12/1e518e872817ded9bd605116b9194a9b74829fc1#1e518e872817ded9bd605116b9194a9b74829fc1"
+  integrity sha512-GnBso0mo2dajaxZy0Ni2uO/917ihyQ81gPh8zt2MiFCPKSZsKAbVyD6WekH8aAOekrE8sxlRnyquQHLw4orAUA==
+
 "@google-cloud/secret-manager@^6.1.2":
   version "6.1.2"
   resolved "https://registry.yarnpkg.com/@google-cloud/secret-manager/-/secret-manager-6.1.2.tgz#262aff39192fde4132b1a0e90f99e27a183586e7"
@@ -2274,7 +2321,12 @@
     "@types/node" "^22.15.30"
     "@types/pg" "^8.8.0"
 
-"@noble/hashes@2.2.0":
+"@noble/ciphers@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@noble/ciphers/-/ciphers-2.2.0.tgz#84fb45ac9332925d643b80f89ceb0ea2f21dba95"
+  integrity sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA==
+
+"@noble/hashes@2.2.0", "@noble/hashes@^2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.2.0.tgz#22da1d16a469954fce877055d559900a6c73b63b"
   integrity sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==
@@ -3584,6 +3636,19 @@
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.1.0.tgz#a79b55dbaf8604812f52d140b2c9ab41bc150bb8"
   integrity sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==
+
+"@surrealdb/cbor@2.0.0-alpha.4":
+  version "2.0.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@surrealdb/cbor/-/cbor-2.0.0-alpha.4.tgz#0f94b22d9d4af357b8038b0ce11b79840226338d"
+  integrity sha512-l/hNZ3ZCOJq8rzwx1y5ZV/8b2bYCWdhGqRVY33Pu50NAHyAW5qLsMn3ZBkZow77mAKwNCsbDsRGnyYEuU95mjw==
+
+"@surrealdb/sqon@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@surrealdb/sqon/-/sqon-0.1.1.tgz#f65a9489604cf2fc5f05d87722d7a865bb2603eb"
+  integrity sha512-O9OVEkIwMRZMpDVFU91ZXOMjneFejZp2WbFdJL+31d2AHWBXKzTvuT4TIFflENnLgyKV5vUA+lWuw0zKfrkouA==
+  dependencies:
+    "@surrealdb/cbor" "2.0.0-alpha.4"
+    uuidv7 "^1.0.1"
 
 "@swc/helpers@^0.5.0", "@swc/helpers@^0.5.12":
   version "0.5.17"
@@ -8416,6 +8481,11 @@ has-tostringtag@^1.0.2:
   dependencies:
     has-symbols "^1.0.3"
 
+hash-wasm@^4.12.0:
+  version "4.12.0"
+  resolved "https://registry.yarnpkg.com/hash-wasm/-/hash-wasm-4.12.0.tgz#f9f1a9f9121e027a9acbf6db5d59452ace1ef9bb"
+  integrity sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ==
+
 hasown@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/hasown/-/hasown-2.0.2.tgz#003eaf91be7adc372e84ec59dc37252cedb80003"
@@ -9336,6 +9406,18 @@ levn@~0.3.0:
   dependencies:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
+
+libsodium-wrappers@^0.8.4:
+  version "0.8.4"
+  resolved "https://registry.yarnpkg.com/libsodium-wrappers/-/libsodium-wrappers-0.8.4.tgz#c9953edc16f2f40f1f4d2580147b8de775fb901c"
+  integrity sha512-mu8aAWucZjTB5O/BtGXtW4e1agy7uHxNYG7zPthmmD1jU43LCDmSWZLN4JhflbdPXj3yDO4lxM1O9hLDgIOXDw==
+  dependencies:
+    libsodium "^0.8.0"
+
+libsodium@^0.8.0:
+  version "0.8.4"
+  resolved "https://registry.yarnpkg.com/libsodium/-/libsodium-0.8.4.tgz#a61393dad8c25e0fda129e3fdf85b3baee2d456f"
+  integrity sha512-lMcYaRi0zcs7tarATsQUYC7rstliIXZuoq0c6zXSgNtSNtdvBgkSegjWhpMJAXzKX3SUSwIp7+zEsob+j3LuRw==
 
 lightningcss-android-arm64@1.32.0:
   version "1.32.0"
@@ -12348,6 +12430,11 @@ sort-css-media-queries@2.2.0:
   resolved "https://registry.yarnpkg.com/sort-css-media-queries/-/sort-css-media-queries-2.2.0.tgz#aa33cf4a08e0225059448b6c40eddbf9f1c8334c"
   integrity sha512-0xtkGhWCC9MGt/EzgnvbbbKhqWjl1+/rncmhTh5qCpbYguXh6S/qwePfv/JQ8jePXXmqingylxoC49pCkSPIbA==
 
+sorted-btree@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/sorted-btree/-/sorted-btree-2.1.0.tgz#90f4d7d5411f21d092035b836d8c260e3e70042e"
+  integrity sha512-AtYXy3lL+5jrATpbymC2bM8anN/3maLkmVCd94MzypnKjokfCid/zeS3rvXedv7W6ffSfqKIGdz3UaJPWRBZ0g==
+
 source-map-js@^1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/source-map-js/-/source-map-js-1.2.1.tgz#1ce5650fddd87abc099eda37dcff024c2667ae46"
@@ -12724,7 +12811,7 @@ stylis@4.2.0:
   resolved "https://registry.yarnpkg.com/stylis/-/stylis-4.2.0.tgz#79daee0208964c8fe695a42fcffcac633a211a51"
   integrity sha512-Orov6g6BB1sDfYgzWfTHDOxamtX1bE/zo104Dh9e6fqJ3PooipYyfJ0pUmrZO2wAvO8YbEyeFrkV91XTsGMSrw==
 
-sucrase@^3.35.0:
+sucrase@^3.35.0, sucrase@^3.35.1:
   version "3.35.1"
   resolved "https://registry.yarnpkg.com/sucrase/-/sucrase-3.35.1.tgz#4619ea50393fe8bd0ae5071c26abd9b2e346bfe1"
   integrity sha512-DhuTmvZWux4H1UOnWMB3sk0sbaCVOoQZjv8u1rDoTV0HTdGem9hkAZtl4JZy8P2z4Bg0nT+YMeOFyVr4zcG5Tw==
@@ -13512,6 +13599,11 @@ uuid@^3.3.2:
   version "3.4.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.4.0.tgz#b23e4358afa8a202fe7a100af1f5f883f02007ee"
   integrity sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==
+
+uuidv7@^1.0.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/uuidv7/-/uuidv7-1.2.1.tgz#cdffa346e4750741ad19209b55b5036c787629f9"
+  integrity sha512-4kPkK3/XTQW9Hbm4CaqfICn+kY9LJtDVEOfgsRRra/+n2Ofg4NqzRFceAkxvQ/Ud/6BpHOPzj8cirqM7TzTN5Q==
 
 v8-compile-cache-lib@^3.0.1:
   version "3.0.1"

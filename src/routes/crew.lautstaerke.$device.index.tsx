@@ -24,6 +24,8 @@ import {
 import {type NoiseRecording} from '../proto/noise';
 import {ChartTooltip} from '../components/lautstaerke/ChartTooltip';
 import {BAND_FREQUENCIES} from '../components/lautstaerke/bluetooth';
+import {useSurrealLiveBuffer} from '../components/lautstaerke/surreal/useSurrealLiveBuffer';
+import type {Surreal} from '@frachter-app/surrealdb';
 
 export const Route = createFileRoute('/crew/lautstaerke/$device/')({
   component: DeviceLive,
@@ -194,7 +196,22 @@ function DeviceLive() {
     laeq30m: deviceState?.laeq30m ?? undefined,
     lceq30m: deviceState?.lceq30m ?? undefined,
   } as NoiseRecording;
-  const data = ctx.deviceData.current[device] as uPlot.AlignedData;
+
+  // When the read source is the local SurrealDB volume, the live time chart is
+  // driven by a `LIVE SELECT` on the `reading` table (the DB's own change feed)
+  // instead of the in-memory MQTT/BLE buffer — a true reactive-from-the-database
+  // view. The band spectrum + big-number "live" values still come from the
+  // direct latest record (they need the full frame, incl. the raw band bytes).
+  const useSurrealLive =
+    ctx.storage.readSource === 'surreal' && ctx.storage.status === 'ready';
+  const surrealBuf = useSurrealLiveBuffer(
+    ctx.storage.db as Surreal | null,
+    device,
+    useSurrealLive,
+  );
+  const data = (
+    useSurrealLive ? surrealBuf.current : ctx.deviceData.current[device]
+  ) as uPlot.AlignedData;
 
   return (
     <>

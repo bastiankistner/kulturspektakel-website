@@ -4,6 +4,7 @@ import {getCookie, setResponseHeader} from '@tanstack/react-start/server';
 import {ChakraProvider} from '@chakra-ui/react';
 import crewTheme from '../theme-crew';
 import {verifyDirectusSession} from '../server/directusAuth.server';
+import {LAUTSTAERKE_DEMO} from '../components/lautstaerke/demoMode';
 
 /**
  * Build the Directus Slack-SSO login URL for an unauthenticated visitor, or
@@ -41,6 +42,12 @@ const crewLoginUrl = createServerFn()
 
 export const Route = createFileRoute('/crew')({
   beforeLoad: async ({location}) => {
+    // Dev-only: let the noise-monitor showcase open without a crew session.
+    // Scoped to the /crew/lautstaerke subtree so every other crew page still
+    // requires auth. Dead code in production (see demoMode.ts).
+    if (LAUTSTAERKE_DEMO && location.pathname.startsWith('/crew/lautstaerke')) {
+      return;
+    }
     const login = await crewLoginUrl({data: location.href});
     if (login) {
       throw redirect({href: login});
