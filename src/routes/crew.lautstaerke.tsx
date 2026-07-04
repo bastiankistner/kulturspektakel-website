@@ -31,6 +31,12 @@ import {Toaster, toaster} from '../components/chakra-snippets/toaster';
 import {useSurrealStorage} from '../components/lautstaerke/surreal/useSurrealStorage';
 import {StorageMenu} from '../components/lautstaerke/StorageMenu';
 import {LAUTSTAERKE_DEMO} from '../components/lautstaerke/demoMode';
+import {
+  isMicrophoneSupported,
+  startMicrophone,
+  MIC_DEVICE_NAME,
+  type MicHandle,
+} from '../components/lautstaerke/microphone/source';
 
 const noiseDevices = createServerFn()
   .middleware([crewAuth])
@@ -87,6 +93,16 @@ function LautstaerkeLayout() {
   // `ingest` mirrors the live stream into the opfs:// volume when enabled.
   const surreal = useSurrealStorage();
 
+  // Local microphone input source (demo/fallback when no hardware device is
+  // around). Wired below the ingest core so it can feed decoded frames directly.
+  const [micActive, setMicActive] = useState(false);
+  const [micStarting, setMicStarting] = useState(false);
+  const [micSupported, setMicSupported] = useState(false);
+  useEffect(() => {
+    setMicSupported(isMicrophoneSupported());
+  }, []);
+  const micHandleRef = useRef<MicHandle | null>(null);
+
   const [bleDeviceName, setBleDeviceName] = useState<string | null>(null);
   const [bleConnecting, setBleConnecting] = useState(false);
   const [bleSupported, setBleSupported] = useState(false);
@@ -100,15 +116,12 @@ function LautstaerkeLayout() {
     onDisconnect?: (e: Event) => void;
   }>({});
 
-  const ingest = useCallback(
-    (deviceName: string, payload: Uint8Array, receiveTime: number) => {
-      let decoded: NoiseRecording;
-      try {
-        decoded = NoiseRecording.decode(payload);
-      } catch (e) {
-        console.error('[lautstärke] decode error', e);
-        return;
-      }
+  // Shared ingest core: takes an already-decoded NoiseRecording and fans it out
+  // to the live buffers, device state, and (when enabled) SurrealDB. MQTT/BLE
+  // reach this via `ingest` (which decodes the protobuf payload first); the local
+  // microphone source builds a NoiseRecording directly and calls this.
+  const ingestDecoded = useCallback(
+    (deviceName: string, decoded: NoiseRecording, receiveTime: number) => {
       const record = decoded.records[0];
       if (!record) return;
 
@@ -139,6 +152,59 @@ function LautstaerkeLayout() {
     },
     [surreal.ingest],
   );
+
+  const ingest = useCallback(
+    (deviceName: string, payload: Uint8Array, receiveTime: number) => {
+      let decoded: NoiseRecording;
+      try {
+        decoded = NoiseRecording.decode(payload);
+      } catch (e) {
+        console.error('[lautstärke] decode error', e);
+        return;
+      }
+      ingestDecoded(deviceName, decoded, receiveTime);
+    },
+    [ingestDecoded],
+  );
+
+  const stopMic = useCallback(async () => {
+    const handle = micHandleRef.current;
+    micHandleRef.current = null;
+    setMicActive(false);
+    if (handle) await handle.stop();
+  }, []);
+
+  const startMic = useCallback(async () => {
+    if (micHandleRef.current || micStarting) return;
+    setMicStarting(true);
+    try {
+      const handle = await startMicrophone((frame, receiveTime) => {
+        ingestDecoded(MIC_DEVICE_NAME, frame, receiveTime);
+      });
+      micHandleRef.current = handle;
+      setMicActive(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!(e instanceof DOMException && e.name === 'NotAllowedError')) {
+        toaster.create({
+          type: 'error',
+          title: 'Mikrofon konnte nicht gestartet werden',
+          description: msg,
+        });
+      }
+      throw e;
+    } finally {
+      setMicStarting(false);
+    }
+  }, [micStarting, ingestDecoded]);
+
+  // Tear the mic down when the layout unmounts (leaving the noise pages).
+  useEffect(() => {
+    return () => {
+      void micHandleRef.current?.stop();
+      micHandleRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const tick = setInterval(() => {
@@ -320,6 +386,13 @@ function LautstaerkeLayout() {
         writeCalibration: writeCal,
         writeWifi: writeWifiCreds,
       },
+      microphone: {
+        supported: micSupported,
+        active: micActive,
+        starting: micStarting,
+        start: startMic,
+        stop: stopMic,
+      },
       storage: surreal.slice,
     }),
     [
@@ -336,6 +409,11 @@ function LautstaerkeLayout() {
       readCal,
       writeCal,
       writeWifiCreds,
+      micSupported,
+      micActive,
+      micStarting,
+      startMic,
+      stopMic,
       surreal.slice,
     ],
   );

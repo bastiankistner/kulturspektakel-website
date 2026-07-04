@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VeganRouteImport } from './routes/vegan'
+import { Route as LautstaerkeMicTestRouteImport } from './routes/lautstaerke-mic-test'
 import { Route as GlutenfreiRouteImport } from './routes/glutenfrei'
 import { Route as CrewRouteImport } from './routes/crew'
 import { Route as MainRouteImport } from './routes/_main'
@@ -102,6 +103,11 @@ import { Route as CrewBookingEventIdApplicationIdContactRouteImport } from './ro
 const VeganRoute = VeganRouteImport.update({
   id: '/vegan',
   path: '/vegan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LautstaerkeMicTestRoute = LautstaerkeMicTestRouteImport.update({
+  id: '/lautstaerke-mic-test',
+  path: '/lautstaerke-mic-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GlutenfreiRoute = GlutenfreiRouteImport.update({
@@ -567,6 +573,7 @@ export interface FileRoutesByFullPath {
   '/': typeof MainIndexRoute
   '/crew': typeof CrewRouteWithChildren
   '/glutenfrei': typeof GlutenfreiRoute
+  '/lautstaerke-mic-test': typeof LautstaerkeMicTestRoute
   '/vegan': typeof VeganRoute
   '/$slug': typeof MainSlugRoute
   '/Route': typeof MainRouteRoute
@@ -655,6 +662,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/glutenfrei': typeof GlutenfreiRoute
+  '/lautstaerke-mic-test': typeof LautstaerkeMicTestRoute
   '/vegan': typeof VeganRoute
   '/$slug': typeof MainSlugRoute
   '/Route': typeof MainRouteRoute
@@ -743,6 +751,7 @@ export interface FileRoutesById {
   '/_main': typeof MainRouteWithChildren
   '/crew': typeof CrewRouteWithChildren
   '/glutenfrei': typeof GlutenfreiRoute
+  '/lautstaerke-mic-test': typeof LautstaerkeMicTestRoute
   '/vegan': typeof VeganRoute
   '/_main/$slug': typeof MainSlugRoute
   '/_main/Route': typeof MainRouteRoute
@@ -836,6 +845,7 @@ export interface FileRouteTypes {
     | '/'
     | '/crew'
     | '/glutenfrei'
+    | '/lautstaerke-mic-test'
     | '/vegan'
     | '/$slug'
     | '/Route'
@@ -924,6 +934,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/glutenfrei'
+    | '/lautstaerke-mic-test'
     | '/vegan'
     | '/$slug'
     | '/Route'
@@ -1011,6 +1022,7 @@ export interface FileRouteTypes {
     | '/_main'
     | '/crew'
     | '/glutenfrei'
+    | '/lautstaerke-mic-test'
     | '/vegan'
     | '/_main/$slug'
     | '/_main/Route'
@@ -1103,6 +1115,7 @@ export interface RootRouteChildren {
   MainRoute: typeof MainRouteWithChildren
   CrewRoute: typeof CrewRouteWithChildren
   GlutenfreiRoute: typeof GlutenfreiRoute
+  LautstaerkeMicTestRoute: typeof LautstaerkeMicTestRoute
   VeganRoute: typeof VeganRoute
   ApiKultcashRoute: typeof ApiKultcashRouteWithChildren
   ApiNoiseRoute: typeof ApiNoiseRouteWithChildren
@@ -1131,6 +1144,13 @@ declare module '@tanstack/react-router' {
       path: '/vegan'
       fullPath: '/vegan'
       preLoaderRoute: typeof VeganRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lautstaerke-mic-test': {
+      id: '/lautstaerke-mic-test'
+      path: '/lautstaerke-mic-test'
+      fullPath: '/lautstaerke-mic-test'
+      preLoaderRoute: typeof LautstaerkeMicTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/glutenfrei': {
@@ -2021,6 +2041,7 @@ const rootRouteChildren: RootRouteChildren = {
   MainRoute: MainRouteWithChildren,
   CrewRoute: CrewRouteWithChildren,
   GlutenfreiRoute: GlutenfreiRoute,
+  LautstaerkeMicTestRoute: LautstaerkeMicTestRoute,
   VeganRoute: VeganRoute,
   ApiKultcashRoute: ApiKultcashRouteWithChildren,
   ApiNoiseRoute: ApiNoiseRouteWithChildren,
