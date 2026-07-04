@@ -201,11 +201,26 @@ export type StorageSlice = {
   db: unknown | null;
 };
 
+// Local-microphone input source. A demo/fallback for when no hardware noise
+// monitor is around: it captures the browser mic, derives RELATIVE (uncalibrated)
+// levels, and streams them in as a virtual device — flowing through the same
+// pipeline as MQTT/BLE (charts + SurrealDB).
+export type MicrophoneSlice = {
+  supported: boolean;
+  // True while capturing. The virtual device name is MIC_DEVICE_NAME.
+  active: boolean;
+  starting: boolean;
+  // Resolves once capture has started (permission granted), or throws.
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+};
+
 export type LautstaerkeCtx = {
   connected: boolean;
   devices: Record<string, DeviceState>;
   deviceData: MutableRefObject<Record<string, DeviceBuffer>>;
   bluetooth: BluetoothSlice;
+  microphone: MicrophoneSlice;
   storage: StorageSlice;
   // All NOISE_MONITOR device ids from the database (sorted). This is the set of
   // rows rendered in the list; MQTT only drives each row's activity indicator.

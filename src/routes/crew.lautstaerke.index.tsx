@@ -17,6 +17,7 @@ import {
 } from '../components/lautstaerke/context';
 import {BatteryChip} from '../components/lautstaerke/BatteryChip';
 import {BluetoothMenu} from '../components/lautstaerke/BluetoothMenu';
+import {MicrophoneButton} from '../components/lautstaerke/MicrophoneButton';
 
 export const Route = createFileRoute('/crew/lautstaerke/')({
   component: DeviceList,
@@ -57,7 +58,10 @@ function DeviceList() {
         <Heading as="h1" size="2xl">
           Lautstärke
         </Heading>
-        <BluetoothMenu />
+        <HStack gap="2">
+          <MicrophoneButton />
+          <BluetoothMenu />
+        </HStack>
       </HStack>
       {names.length === 0 && !ctx.connected ? (
         <Center flex="1" py="10">
