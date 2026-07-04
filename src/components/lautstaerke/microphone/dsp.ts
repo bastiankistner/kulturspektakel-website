@@ -19,39 +19,48 @@ export function encodeDb(db: number): number {
   return Math.round((clamped - DB_MIN) * 2);
 }
 
+// Exact IEC base-10 1/3-octave EDGE frequencies. The `BAND_FREQUENCIES` labels
+// are rounded (16, 20, 25, 31.5, 63, 125, 160, 630, …) and are NOT geometrically
+// spaced, so edges derived from them (f·2^±1/6) don't tile — leaving gaps (real
+// in-range energy discarded) and overlaps. Instead derive edges from the exact
+// preferred midband frequencies fm = 1000·10^((b−18)/10) (index 18 = 1 kHz in
+// BAND_FREQUENCIES) with 1/3-octave edges fm·10^±(1/20); then hi[b] === lo[b+1]
+// exactly, so every bin lands in exactly one band and none is dropped.
+const BAND_EDGES = BAND_FREQUENCIES.map((_, b) => {
+  const fm = 1000 * Math.pow(10, (b - 18) / 10);
+  return {lo: fm * Math.pow(10, -1 / 20), hi: fm * Math.pow(10, 1 / 20)};
+});
+
 /**
- * Map an FFT magnitude spectrum (linear magnitudes, bin i = i·binHz) onto the 31
+ * Map a per-bin POWER spectrum (linear power, bin i covers [i·binHz]) onto the 31
  * IEC 1/3-octave bands in {@link BAND_FREQUENCIES}, returning each band's level
- * in dB (relative, offset-applied). Bins are summed by power into the band whose
- * 1/3-octave edges (f·2^±(1/6)) contain the bin centre; empty bands read DB_MIN.
+ * in dB (relative, offset-applied). Bins are summed into the band whose exact
+ * 1/3-octave edges contain the bin centre (see {@link BAND_EDGES}); empty bands
+ * read DB_MIN.
+ *
+ * The input is mean POWER per bin (magnitude²), not magnitude, so that averaging
+ * over time upstream is energy-correct (Leq must average power, not amplitude).
  *
  * `offsetDb` shifts dBFS-ish values onto the display scale (default tuned so a
  * normal room lands mid-scale). `refDb` is the 0-dBFS reference used for the
  * 10·log10 conversion.
  */
 export function spectrumToBands(
-  magnitudes: Float32Array | number[],
+  binPower: Float32Array | number[],
   binHz: number,
   offsetDb: number,
   refDb = 0,
 ): number[] {
-  const n = magnitudes.length;
+  const n = binPower.length;
   const power = new Array(BAND_FREQUENCIES.length).fill(0);
   const count = new Array(BAND_FREQUENCIES.length).fill(0);
 
-  // Precompute band edges (lower/upper) once.
-  const edges = BAND_FREQUENCIES.map((f) => ({
-    lo: f * Math.pow(2, -1 / 6),
-    hi: f * Math.pow(2, 1 / 6),
-  }));
-
   for (let i = 1; i < n; i++) {
     const freq = i * binHz;
-    // Find the band this bin falls into (bands are contiguous & ascending).
-    for (let b = 0; b < edges.length; b++) {
-      if (freq >= edges[b].lo && freq < edges[b].hi) {
-        const m = magnitudes[i];
-        power[b] += m * m;
+    // Bands tile exactly, so a bin falls in at most one; find it and stop.
+    for (let b = 0; b < BAND_EDGES.length; b++) {
+      if (freq >= BAND_EDGES[b].lo && freq < BAND_EDGES[b].hi) {
+        power[b] += binPower[i];
         count[b]++;
         break;
       }
@@ -121,17 +130,18 @@ export interface MicFrame {
 
 /**
  * Build one per-second record from the accumulated FFT statistics of that
- * second: `avgMagnitudes` (mean linear magnitude per bin), `maxBandDb` (per-band
- * running max in dB), and `peakSample` (max abs time-domain sample, 0–1).
- * Everything is returned in the device's byte encoding.
+ * second: `avgBinPower` (mean linear POWER per bin, magnitude² averaged over the
+ * window — averaging power, not amplitude, is what makes the Leq energy-correct)
+ * and `peakSample` (max abs time-domain sample, 0–1). Everything is returned in
+ * the device's byte encoding.
  */
 export function buildMicFrame(
-  avgMagnitudes: Float32Array | number[],
+  avgBinPower: Float32Array | number[],
   binHz: number,
   offsetDb: number,
   peakSample: number,
 ): MicFrame {
-  const bandDb = spectrumToBands(avgMagnitudes, binHz, offsetDb);
+  const bandDb = spectrumToBands(avgBinPower, binHz, offsetDb);
   const laeq = weightedLeq(bandDb, A_WEIGHTING);
   const lceq = weightedLeq(bandDb, C_WEIGHTING);
   // Fast max ≈ the equivalent here (single-second window); peak from the raw
