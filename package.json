@@ -67,7 +67,7 @@
     "@frachter-app/surreal-opfs-kv": "^0.1.0",
     "@frachter-app/surrealdb": "2.0.4-fr.7.g2164796.cf8e4304",
     "@frachter-app/surrealdb-wasm": "3.0.4-fr.7.g2164796.cf8e4304",
-    "@frachter-app/surrealist": "0.1.0-fr.12",
+    "@frachter-app/surrealist": "0.1.0-fr.13",
     "@google-cloud/tasks": "^6.2.2",
     "@googlemaps/react-wrapper": "^1.2.0",
     "@neondatabase/serverless": "^1.0.2",

@@ -2027,10 +2027,10 @@
   dependencies:
     "@surrealdb/sqon" "^0.1.1"
 
-"@frachter-app/surrealist@0.1.0-fr.12":
-  version "0.1.0-fr.12"
-  resolved "https://npm.pkg.github.com/download/@frachter-app/surrealist/0.1.0-fr.12/1e518e872817ded9bd605116b9194a9b74829fc1#1e518e872817ded9bd605116b9194a9b74829fc1"
-  integrity sha512-GnBso0mo2dajaxZy0Ni2uO/917ihyQ81gPh8zt2MiFCPKSZsKAbVyD6WekH8aAOekrE8sxlRnyquQHLw4orAUA==
+"@frachter-app/surrealist@0.1.0-fr.13":
+  version "0.1.0-fr.13"
+  resolved "https://npm.pkg.github.com/download/@frachter-app/surrealist/0.1.0-fr.13/12443fac024c17ea38939bdb01ae1e5412439fa0#12443fac024c17ea38939bdb01ae1e5412439fa0"
+  integrity sha512-1rL/GHO6zJf+MybwAzcP4/HHsqWoU6vQ3tN0W1sN2p0tOFarZfymUEd+FduqYGrKBSkvXeWcNo53Xag+ckwzNw==
 
 "@google-cloud/secret-manager@^6.1.2":
   version "6.1.2"
