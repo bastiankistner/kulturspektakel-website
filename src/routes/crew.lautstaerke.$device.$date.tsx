@@ -22,6 +22,7 @@ import {
 } from '../components/lautstaerke/noiseHistory.shared';
 import {history as surrealHistory} from '../components/lautstaerke/surreal/store';
 import {readPersistedSource} from '../components/lautstaerke/surreal/readSource';
+import {LAUTSTAERKE_DEMO} from '../components/lautstaerke/demoMode';
 import type {Surreal} from '@frachter-app/surrealdb';
 import {seo} from '../utils/seo';
 
@@ -50,7 +51,8 @@ export const Route = createFileRoute('/crew/lautstaerke/$device/$date')({
     // server (first load) this is always 'neon' and the query runs as before; on
     // client navigations it honors the choice. Empty aligned data is a valid
     // placeholder until the local query resolves.
-    if (readPersistedSource() === 'surreal') {
+    // Also skip in demo mode (no Neon / no crew auth). Dead code in production.
+    if (LAUTSTAERKE_DEMO || readPersistedSource() === 'surreal') {
       const {start, end} = localDayRange(params.date);
       return {
         aligned: rowsToAligned([]),

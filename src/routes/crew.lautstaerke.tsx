@@ -30,6 +30,7 @@ import {prismaClient} from '../server/prismaClient.server';
 import {Toaster, toaster} from '../components/chakra-snippets/toaster';
 import {useSurrealStorage} from '../components/lautstaerke/surreal/useSurrealStorage';
 import {StorageMenu} from '../components/lautstaerke/StorageMenu';
+import {LAUTSTAERKE_DEMO} from '../components/lautstaerke/demoMode';
 
 const noiseDevices = createServerFn()
   .middleware([crewAuth])
@@ -62,7 +63,13 @@ const noiseDevices = createServerFn()
 
 export const Route = createFileRoute('/crew/lautstaerke')({
   component: LautstaerkeLayout,
-  loader: async () => await noiseDevices(),
+  // In demo mode, skip the crew-authed Neon device-list query entirely — the
+  // live views are client-side (MQTT/BLE/mic/SurrealDB), so an empty registered
+  // list is fine. Dead code in production (see demoMode.ts).
+  loader: async () =>
+    LAUTSTAERKE_DEMO
+      ? {deviceIds: [], deviceLocations: {}, deviceLastSeen: {}}
+      : await noiseDevices(),
   head: () => seo({title: 'Lautstärke'}),
 });
 
