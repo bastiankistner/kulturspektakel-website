@@ -53,32 +53,34 @@ function DeviceLayout() {
   const toggleWeighting = () => setWeighting((w) => (w === 'A' ? 'C' : 'A'));
 
   // The microphone is a VIRTUAL device (MIC_DEVICE_NAME): its data only exists
-  // while capture is running. Clicking the mic button starts it and then routes
-  // here, but landing on this device via a direct URL / reload wouldn't — the
-  // view would sit empty. So auto-start capture when this is the mic device on
-  // the live view and it isn't already running. Runs once per mount attempt
-  // (permissionTriedRef) so a denied getUserMedia doesn't re-prompt in a loop.
+  // while capture is running. Landing on this device via a direct URL / reload
+  // would otherwise show an empty view (nothing has started capture). So
+  // auto-start capture when this is the mic device on the live view and it isn't
+  // already running. Runs once per mount attempt (permissionTriedRef) so a
+  // denied getUserMedia doesn't re-prompt in a loop.
   const {microphone} = useLautstaerkeCtx();
   const permissionTriedRef = useRef(false);
   const isMicDevice = device === MIC_DEVICE_NAME;
   const onLiveView = date == null;
+  // Read the live mic slice off a ref so the effect can depend ONLY on the
+  // stable route conditions. `microphone.start`'s identity churns whenever the
+  // Surreal write-sink / read-source changes (it closes over the ingest chain);
+  // listing it in the deps would re-run this effect on unrelated toggles. The
+  // fire-once permissionTriedRef guard means the stale closure is fine — and
+  // startMic itself no-ops if capture is already running.
+  const micRef = useRef(microphone);
+  micRef.current = microphone;
   useEffect(() => {
     if (!isMicDevice || !onLiveView) return;
     if (permissionTriedRef.current) return;
-    if (!microphone.supported || microphone.active || microphone.starting) return;
+    const mic = micRef.current;
+    if (!mic.supported || mic.active || mic.starting) return;
     permissionTriedRef.current = true;
-    void microphone.start().catch(() => {
+    void mic.start().catch(() => {
       // start() already toasts on real failures; swallow user-cancel/denial so
       // we don't rethrow into the effect.
     });
-  }, [
-    isMicDevice,
-    onLiveView,
-    microphone.supported,
-    microphone.active,
-    microphone.starting,
-    microphone.start,
-  ]);
+  }, [isMicDevice, onLiveView]);
 
   // Day-aware: the historical view shows where the device stood on that day.
   const location = resolveLocation(locations, date ?? null);
