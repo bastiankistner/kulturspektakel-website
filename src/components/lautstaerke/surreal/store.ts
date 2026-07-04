@@ -155,9 +155,13 @@ export async function history(
       }>,
     ]
   >(
+    // `ts` is epoch MILLISECONDS. A bare `<datetime>int` cast reads the int as
+    // SECONDS (SurrealDB semantics), so we must convert via time::from_millis;
+    // time::floor(_, 1m) then buckets to the minute, and time::unix(_)*1000
+    // brings the bucket back to epoch ms. (time::from::millis was renamed to the
+    // underscore form time::from_millis in SurrealDB 3.0.)
     `SELECT
-        math::min(ts) AS minute_min,
-        (time::unix(time::floor(<datetime>ts, 1m)) * 1000) AS minute,
+        (time::unix(time::floor(time::from_millis(ts), 1m)) * 1000) AS minute,
         math::sum(math::pow(10, (20 + laeq_1s / 2.0) / 10)) AS a_energy,
         math::sum(math::pow(10, (20 + lceq_1s / 2.0) / 10)) AS c_energy,
         count() AS n,
@@ -244,7 +248,11 @@ function rangeFrom(device: string, startMs?: number, endMs?: number): string {
   return `${TABLE}:[${dev}, ${startMs}]..[${dev}, ${endMs}]`;
 }
 
-/** Count-weighted mean power (energy/n) back to dB; null-safe on empty. */
+// Count-weighted mean power (energy/n) back to dB. Returns NaN if n===0 (uPlot
+// renders NaN as a gap, same as the Neon path's NULL). In practice n is always
+// >0 here: per-minute buckets only exist when they have rows, and windowedLeq
+// always includes the current bucket — so the NaN branch is unreachable, it's
+// just a defensive guard against a divide-by-zero.
 function energyToDb(energy: number, n: number): number {
   return n > 0 ? 10 * Math.log10(energy / n) : NaN;
 }

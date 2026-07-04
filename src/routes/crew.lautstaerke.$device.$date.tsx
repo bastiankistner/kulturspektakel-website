@@ -21,6 +21,7 @@ import {
   rowsToAligned,
 } from '../components/lautstaerke/noiseHistory.shared';
 import {history as surrealHistory} from '../components/lautstaerke/surreal/store';
+import {readPersistedSource} from '../components/lautstaerke/surreal/readSource';
 import type {Surreal} from '@frachter-app/surrealdb';
 import {seo} from '../utils/seo';
 
@@ -42,8 +43,23 @@ const loadHistory = createServerFn()
 
 export const Route = createFileRoute('/crew/lautstaerke/$device/$date')({
   component: DeviceHistory,
-  loader: async ({params}) =>
-    loadHistory({data: {device: params.device, date: params.date}}),
+  loader: async ({params}) => {
+    // Skip the (expensive) Neon aggregation when the crew member is reading from
+    // the local SurrealDB volume — the component fetches from Surreal client-side
+    // and never uses this result. Persisted read-source is client-only, so on the
+    // server (first load) this is always 'neon' and the query runs as before; on
+    // client navigations it honors the choice. Empty aligned data is a valid
+    // placeholder until the local query resolves.
+    if (readPersistedSource() === 'surreal') {
+      const {start, end} = localDayRange(params.date);
+      return {
+        aligned: rowsToAligned([]),
+        start: start.getTime(),
+        end: end.getTime(),
+      };
+    }
+    return loadHistory({data: {device: params.device, date: params.date}});
+  },
   head: ({matches, params}) =>
     seo({
       title: `Lautstärke – ${deviceTitle(matches, params.device, params.date)} – ${params.date}`,

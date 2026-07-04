@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import type {Surreal} from '@frachter-app/surrealdb';
 import {connect, type Connection} from './db';
 import {ingest as ingestReading} from './store';
+import {persistReadSource, readPersistedSource} from './readSource';
 import type {NoiseRecording} from '../../../proto/noise';
 import type {
   StorageBackend,
@@ -22,7 +23,12 @@ export function useSurrealStorage(): {
   slice: StorageSlice;
   ingest: (device: string, decoded: NoiseRecording, receiveTime: number) => void;
 } {
-  const [readSource, setReadSource] = useState<StorageBackend>('neon');
+  const [readSource, setReadSourceState] =
+    useState<StorageBackend>(readPersistedSource);
+  const setReadSource = useCallback((b: StorageBackend) => {
+    setReadSourceState(b);
+    persistReadSource(b);
+  }, []);
   const [surrealWrite, setSurrealWrite] = useState(false);
   const [status, setStatus] = useState<SurrealStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +38,11 @@ export function useSurrealStorage(): {
   // Guards against overlapping connect() calls and against a resolved connect
   // landing after the component unmounted / Surreal was turned back off.
   const connectingRef = useRef(false);
+  // The in-flight dispose(), if any. A new connect() must await this first:
+  // dispose() releases the volume's EXCLUSIVE OPFS handle asynchronously, so
+  // connecting before it settles would try to re-acquire a still-held handle and
+  // stall until the connect timeout. Off→on toggles hit exactly this.
+  const disposingRef = useRef<Promise<void> | null>(null);
 
   // Surreal is "wanted" whenever we read from it or mirror writes into it.
   const wantSurreal = surrealWrite || readSource === 'surreal';
@@ -44,7 +55,10 @@ export function useSurrealStorage(): {
       connectingRef.current = true;
       setStatus('connecting');
       setError(null);
-      connect()
+      // Wait out any in-flight dispose so the previous worker has released the
+      // exclusive OPFS handle before we try to re-acquire it.
+      Promise.resolve(disposingRef.current)
+        .then(() => connect())
         .then((conn) => {
           if (cancelled) {
             void conn.dispose();
@@ -64,12 +78,16 @@ export function useSurrealStorage(): {
         });
     } else if (connRef.current) {
       // No longer wanted → release the volume (and its exclusive OPFS handle).
+      // Track the dispose so a subsequent connect awaits it (see disposingRef).
       const conn = connRef.current;
       connRef.current = null;
       setDb(null);
       setStatus('idle');
       setError(null);
-      void conn.dispose();
+      const p = conn.dispose().finally(() => {
+        if (disposingRef.current === p) disposingRef.current = null;
+      });
+      disposingRef.current = p;
     }
 
     return () => {
